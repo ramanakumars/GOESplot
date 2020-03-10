@@ -1,14 +1,13 @@
 ''' adapted from https://github.com/blaylockbk/pyBKB_v2/blob/master/BB_GOES16/mapping_GOES16_data.ipynb '''
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import s3fs, os, sys, datetime
 import netCDF4 as nc
 import glob, time, re
 from pyproj import Proj
 from skimage import exposure
-from mpl_toolkits.basemap import Basemap
 import cartopy.crs as ccrs
 from cartopy.feature import NaturalEarthFeature
 
@@ -90,17 +89,6 @@ def process_data(year, day, daytime_only):
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
     ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
     ax.coastlines(resolution='10m', color='black', linewidth=0.5)
-    # m = Basemap(resolution='i', projection='lcc', area_thresh=5000, \
-    #             width=1800*3000, height=1060*3000, \
-    #             lat_1=38.5, lat_2=38.5, \
-    #             lat_0=38.5, lon_0=-97.5)
-
-    # m = Basemap(resolution='l', projection='cass', llcrnrlon=-125., urcrnrlon=-60, \
-    #         llcrnrlat=20., urcrnrlat=55., \
-    #         lat_0=38.5, lon_0=-97.5, \
-    #         width=1800*3000, height=1060*3000)
-
-
     plt.axis('off')
 
     pattern = r'OR_ABI-L2-MCMIPC-M6_G16_s([0-9]{4})([0-9]{3})([0-9]{2})([0-9]{2})([0-9]{3})_e([0-9]{4})([0-9]{3})([0-9]{2})([0-9]{2})([0-9]{3})_c([0-9]{4})([0-9]{3})([0-9]{2})([0-9]{2})([0-9]{3})'
