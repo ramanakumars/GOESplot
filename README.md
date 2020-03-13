@@ -4,22 +4,13 @@ Python code to plot GOES imagery
 ## Usage
 Run using:
 ```` sh
-$ python run_GOES.py -- date yyyy-mm-dd [--daytime 0] [--download 1]
+$ python run_GOES.py --date yyyy-mm-dd [--daytime 0]
 ````
 Arguments:
 
  ````date````: 
 
  Date to retrieve image (format: yyyy-mm-dd). Required.
-
- ````process````: 
-
- Flag to process into pngs (default: True)
-
- ````download````: 
-
- Download data (default: True)
- If false, only uses currently available data. 
 
  ````daytime````: 
 
@@ -37,7 +28,7 @@ python run_GOES.py --date 2019-11-15 --daytime 1
  This code requires the following Python modules to be installed
 
  ````
- numpy, scipy, matplotlib, glob, re, s3fs, netCDF4, skimage, pyproj, cartopy
+ numpy, scipy, matplotlib, glob, re, s3fs, netCDF4, pyproj, cartopy
  ````
 
  For Windows, you can find most of these packages [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/)

@@ -1,13 +1,11 @@
 ''' adapted from https://github.com/blaylockbk/pyBKB_v2/blob/master/BB_GOES16/mapping_GOES16_data.ipynb '''
 import numpy as np
 import matplotlib
-# matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, glob, time, re
 import s3fs, os, sys, datetime
 import netCDF4 as nc
-import glob, time, re
 from pyproj import Proj
-from skimage import exposure
 import cartopy.crs as ccrs
 from cartopy.feature import NaturalEarthFeature
 
@@ -82,8 +80,11 @@ def process_data(year, day, daytime_only):
         os.makedirs(plotfolder)
         print("Folder was created: ", plotfolder)
 
+    ''' 
+        create the figure
+        and apply the projection we want (Mercator centered over the central US)
+    '''
     projection = ccrs.Mercator(central_longitude=-97.5)
-
     fig = plt.figure(figsize=(10,10))
     ax  = fig.add_subplot(111, projection=projection, facecolor='black')
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
@@ -91,42 +92,67 @@ def process_data(year, day, daytime_only):
     ax.coastlines(resolution='10m', color='black', linewidth=0.5)
     plt.axis('off')
 
+    '''
+        the file is in the following pattern
+        so that we can extract the timestamp info
+    '''
     pattern = r'OR_ABI-L2-MCMIPC-M6_G16_s([0-9]{4})([0-9]{3})([0-9]{2})([0-9]{2})([0-9]{3})_e([0-9]{4})([0-9]{3})([0-9]{2})([0-9]{2})([0-9]{3})_c([0-9]{4})([0-9]{3})([0-9]{2})([0-9]{2})([0-9]{3})'
 
-    for file in files:
-        fname = file.split('\\')[-1]
-        
-        match = re.findall(pattern, fname)
+    ''' 
+        stream MCMPIC (5-min CONUS) images from GOES 16 for a given day/year
+    '''
+    # Use the anonymous credentials to access public data
+    fs = s3fs.S3FileSystem(anon=True)
 
-        syear, sday, shour, smin, ssec, \
-            eyear, eday, ehour, emin, esec, \
-            cyear, cday, chour, cmin, csec = np.array(match[0], dtype=np.int32)
+    ''' get the number of hours available '''
+    hours = fs.ls('noaa-goes16/ABI-L2-MCMIPC/%d/%03d/'%(year, day))
 
+    print("Found %d hours"%len(hours))
+    filelist = []
+    for hour in hours:
+        # List specific files of GOES-16 CONUS data (multiband format) on a certain hour
+        files = np.array(fs.ls(hour))
+
+        houri = int(hour.split('/')[-1])
+
+        ''' if we only want the daytime images '''
         if(daytime_only==True):
-            if((shour>=1)&(shour<11)):
+            if((houri>=1)&(houri<11)):
                 continue
+        for file in files:
+            fname = file.split('\\')[-1]
+            
+            ''' extract the timestamps '''
+            match = re.findall(pattern, fname)
+            syear, sday, shour, smin, ssec, \
+                eyear, eday, ehour, emin, esec, \
+                cyear, cday, chour, cmin, csec = np.array(match[0], dtype=np.int32)
 
-        print("Processing %02d:%02d:%.1fZ... "%(shour, smin, ssec), end='')
-        sys.stdout.flush()
+            filelist.append([file, shour, smin, ssec])
 
-        if(file==files[0]):
-            mapproj = make_pngs(file, plotfolder, fig, ax, projection)
-        else:
-            mapproj = make_pngs(file, plotfolder, fig, ax, projection, mapproj=mapproj)
-    
+            if(len(filelist)==1):
+                mapproj = make_pngs(fs.open(file,'r'), plotfolder, fig, ax, projection)
+            else:
+                mapproj = make_pngs(fs.open(file,'r'), plotfolder, fig, ax, projection, mapproj=mapproj)
+  
 def make_pngs(file, plotfolder, fig, ax, projection, mapproj=None):
     t1 = time.time()
-    data = nc.Dataset(file, 'r')
+    
+    ''' stream the netCDF file by reading it from memory '''
+    data = nc.Dataset('name', 'r', memory=file.buffer.read())
 
     timeoff = data.variables['t'][0]
 
-    date = datetime.datetime(2000, 1, 1, 12) + datetime.timedelta(seconds=float(timeoff))
+    date   = datetime.datetime(2000, 1, 1, 12) + datetime.timedelta(seconds=float(timeoff))
 
-    year = date.year
-    day  = date.timetuple().tm_yday
-    hour = date.hour
+    year   = date.year
+    day    = date.timetuple().tm_yday
+    hour   = date.hour
     minute = date.minute
-    sec  = date.second
+    sec    = date.second
+
+    print("Processing %02d:%02d:%.3f..."%(hour, minute, sec),end='')
+    sys.stdout.flush()
 
     R    = data.variables['CMI_C02'][:]
     G    = data.variables['CMI_C03'][:]
@@ -188,19 +214,12 @@ def make_pngs(file, plotfolder, fig, ax, projection, mapproj=None):
     X = data.variables['x'][:] * sat_h
     Y = data.variables['y'][:] * sat_h
 
-
     # Convert map points to latitude and longitude with the magic provided by Pyproj
     p = Proj(proj='geos', h=sat_h, lon_0=sat_lon, sweep=sat_sweep)
     XX, YY = np.meshgrid(X, Y)
     lons, lats = p(XX, YY, inverse=True)
     lats[np.isnan(R)] = np.nan
     lons[np.isnan(R)] = np.nan
-
-    # # The geostationary projection is perhaps the easiest way to plot the image on a map.
-    # # Essentially, we are stretching the image across a map with the same projection and dimensions.
-
-    # ax.cla()
-    
 
     ## Create a color tuple for pcolormesh
     rgb = RGB_IR[:,:-1,:] # Using one less column is very imporant, else your image will be scrambled! (This is the stange nature of pcolormesh)
@@ -213,17 +232,7 @@ def make_pngs(file, plotfolder, fig, ax, projection, mapproj=None):
         mapproj = ax.pcolormesh(lons, lats, R, color=colorTuple, antialiased=False, linewidth=0, transform=ccrs.PlateCarree())
         mapproj.set_array(None)
         ax.background_patch.set_facecolor('k')
-
-    # ax.set_xlim((-125, -60))
-    # ax.set_ylim((20., 55.))
-    
-    # plt.draw()
-    # m.drawcountries()
-    # m.drawstates()
-
-    # plt.tight_layout()
-    # plt.axis('off')
-    
+  
     fig.savefig(plotfolder+"%d%03d_%02d%02d%02d.png"%(year, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
     # plt.close(fig)
     print("%.2f"%(time.time() - t1))
