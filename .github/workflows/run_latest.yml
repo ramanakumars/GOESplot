@@ -31,7 +31,7 @@ jobs:
       - name: Install proj dependencies
         run: sudo apt-get install python3-dev libproj-dev proj-data proj-bin libgeos-dev  
       - name: Install base python dependencies
-        run: python3 -m pip install requirements.txt
+        run: python3 -m pip install -r requirements.txt
       - name: Install additional dependencies
         run: python3 -m pip uninstall shapely && python3 -m pip install --no-binary shapely
       - name: process
