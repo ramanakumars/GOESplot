@@ -5,5 +5,5 @@ pip
 setuptools
 wheel
 netCDF4
-pyproj
+pyproj==1.9.6
 s3fs
