@@ -24,7 +24,7 @@ jobs:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
           # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
@@ -35,4 +35,4 @@ jobs:
       - name: Install additional dependencies
         run: python3 -m pip install --upgrade shapely --no-binary shapely && python3 -m pip install cartopy
       - name: process
-        run: cd web/ && python3 ../run_GOES.py --date today --process_last && mv pngs/*/*/*.png GOES16.png && rm -rf pngs/
+        run: python3 run_GOES.py --date today --process_last && mv pngs/*/*/*.png GOES16.png && rm -rf pngs/ *.nc
