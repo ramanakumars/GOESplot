@@ -14,6 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: init
-        run: pip install s3fs netCDF4 cartopy pyproj
+        run: pip3 install s3fs netCDF4 cartopy pyproj
       - name: process
         run: cd web/ && python3 ../run_GOES.py --date today --process_last && mv pngs/*/*/*.png GOES16.png && rm -rf pngs/
