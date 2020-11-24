@@ -72,25 +72,8 @@ def get_data(year, day, daytime):
     print("All files downloaded")
     print()
 
-def process_data(year, day, daytime_only):
+def get_filelist(year, day, daytime_only):
     files = glob.glob("GOES16/%d/%03d/*.nc"%(year, day))
-
-    plotfolder = "pngs/%d/%03d/"%(year, day)
-    if not os.path.exists(plotfolder):
-        os.makedirs(plotfolder)
-        print("Folder was created: ", plotfolder)
-
-    ''' 
-        create the figure
-        and apply the projection we want (Mercator centered over the central US)
-    '''
-    projection = ccrs.Mercator(central_longitude=-97.5)
-    fig = plt.figure(figsize=(10,10))
-    ax  = fig.add_subplot(111, projection=projection, facecolor='black')
-    plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
-    ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
-    ax.coastlines(resolution='10m', color='black', linewidth=0.5)
-    plt.axis('off')
 
     '''
         the file is in the following pattern
@@ -107,7 +90,7 @@ def process_data(year, day, daytime_only):
     ''' get the number of hours available '''
     hours = fs.ls('noaa-goes16/ABI-L2-MCMIPC/%d/%03d/'%(year, day))
 
-    print("Found %d hours"%len(hours))
+    #print("Found %d hours"%len(hours))
     filelist = []
     for hour in hours:
         # List specific files of GOES-16 CONUS data (multiband format) on a certain hour
@@ -128,13 +111,40 @@ def process_data(year, day, daytime_only):
                 eyear, eday, ehour, emin, esec, \
                 cyear, cday, chour, cmin, csec = np.array(match[0], dtype=np.int32)
 
-            filelist.append([file, shour, smin, ssec])
-
-            if(len(filelist)==1):
-                mapproj = make_pngs(fs.open(file,'r'), plotfolder, fig, ax, projection)
-            else:
-                mapproj = make_pngs(fs.open(file,'r'), plotfolder, fig, ax, projection, mapproj=mapproj)
+            filelist.append(file)
+        
+    return filelist
   
+def process_files(filelist, year, day):
+    ''' 
+        create the figure
+        and apply the projection we want (Mercator centered over the central US)
+    '''
+    
+    plotfolder = "pngs/%d/%03d/"%(year, day)
+    if not os.path.exists(plotfolder):
+        os.makedirs(plotfolder)
+        print("Folder was created: ", plotfolder)
+
+
+    projection = ccrs.Mercator(central_longitude=-97.5)
+    fig = plt.figure(figsize=(15,12))
+    ax  = fig.add_subplot(111, projection=projection, facecolor='black')
+    plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
+    ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
+    #ax.set_extent([-100, -75., 20., 35], crs=ccrs.PlateCarree())
+    ax.coastlines(resolution='10m', color='black', linewidth=0.5)
+    plt.axis('off')
+    
+    # Use the anonymous credentials to access public data
+    fs = s3fs.S3FileSystem(anon=True)
+
+    for i, file in enumerate(filelist):
+        if(i==0):
+            mapproj = make_pngs(fs.open(file,'r'), plotfolder, fig, ax, projection)
+        else:
+            mapproj = make_pngs(fs.open(file,'r'), plotfolder, fig, ax, projection, mapproj=mapproj)
+
 def make_pngs(file, plotfolder, fig, ax, projection, mapproj=None):
     t1 = time.time()
     
