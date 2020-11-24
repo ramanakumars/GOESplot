@@ -19,6 +19,6 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install dependencies
-        run: python -m pip install --upgrade pip setuptools wheel
+        run: python -m pip install --upgrade numpy scipy matplotlib pip setuptools wheel netCDF4 s3fs cartopy pyproj
       - name: process
         run: cd web/ && python3 ../run_GOES.py --date today --process_last && mv pngs/*/*/*.png GOES16.png && rm -rf pngs/
