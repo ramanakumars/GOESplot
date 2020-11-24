@@ -30,6 +30,8 @@ jobs:
             ${{ runner.os }}-
       - name: Install base python dependencies
         run: python3 -m pip install --upgrade numpy scipy matplotlib pip setuptools wheel
+      - name: Install proj dependencies
+        run: apt-get install libproj-dev proj-data proj-bin libgeos-dev  
       - name: Install additional dependencies
         run: python3 -m pip install netCDF4 s3fs cartopy pyproj
       - name: process
