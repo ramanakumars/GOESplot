@@ -33,6 +33,6 @@ jobs:
       - name: Install base python dependencies
         run: python3 -m pip install -r requirements.txt
       - name: Install additional dependencies
-        run: python3 -m pip install --reinstall --no-binary shapely && python3 -m pip install cartopy
+        run: python3 -m pip install --upgrade --no-binary shapely && python3 -m pip install cartopy
       - name: process
         run: cd web/ && python3 ../run_GOES.py --date today --process_last && mv pngs/*/*/*.png GOES16.png && rm -rf pngs/
