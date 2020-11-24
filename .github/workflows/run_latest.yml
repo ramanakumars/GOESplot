@@ -24,15 +24,15 @@ jobs:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
           # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip
-            ${{ runner.os }}
-      - name: Install base python dependencies
-        run: python3 -m pip install numpy scipy matplotlib==3.1.1 pip setuptools wheel
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
       - name: Install proj dependencies
         run: sudo apt-get install python3-dev libproj-dev proj-data proj-bin libgeos-dev  
+      - name: Install base python dependencies
+        run: python3 -m pip install requirements.txt
       - name: Install additional dependencies
-        run: python3 -m pip install netCDF4 s3fs cartopy pyproj
+        run: python3 -m pip uninstall shapely && python3 -m pip install --no-binary shapely
       - name: process
         run: cd web/ && python3 ../run_GOES.py --date today --process_last && mv pngs/*/*/*.png GOES16.png && rm -rf pngs/
