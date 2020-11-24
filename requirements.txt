@@ -5,6 +5,5 @@ pip
 setuptools
 wheel
 netCDF4
-cartopy
 pyproj
 s3fs
