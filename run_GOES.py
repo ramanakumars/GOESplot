@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser(description="Download and plot GOES 16 imagery"
 parser.add_argument('--date', required=True, help='Date to retrieve image (format: yyyy-mm-dd or today)')
 parser.add_argument('--daytime', action="store_true", help='Use daytime data (10Z-01Z)')
 parser.add_argument('--process_last', action='store_true', help='Only process the latest file')
+parser.add_argument('--limits', action='store', type=float, default=[-125., -65., 20., 55.], nargs=4, help='lon/lat limits for plotting')
 
 args = parser.parse_args()
 
@@ -29,7 +30,7 @@ day_of_year = date.timetuple().tm_yday
 filelist = get_filelist(year, day_of_year, int(args.daytime))
 
 if(args.process_last):
-    process_files([filelist[-1]], year, day_of_year)
+    process_files([filelist[-1]], year, day_of_year, args.limits)
 else:
-    process_files(filelist, year, day_of_year)
+    process_files(filelist, year, day_of_year, args.limits)
 

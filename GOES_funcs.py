@@ -115,7 +115,7 @@ def get_filelist(year, day, daytime_only):
         
     return filelist
   
-def process_files(filelist, year, day):
+def process_files(filelist, year, day, limits):
     ''' 
         create the figure
         and apply the projection we want (Mercator centered over the central US)
@@ -127,11 +127,11 @@ def process_files(filelist, year, day):
         print("Folder was created: ", plotfolder)
 
 
-    projection = ccrs.Mercator(central_longitude=-97.5)
+    projection = ccrs.Mercator(central_longitude=(limits[0] + limits[1])/2.)
     fig = plt.figure(figsize=(15,12))
     ax  = fig.add_subplot(111, projection=projection, facecolor='black')
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
-    ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
+    ax.set_extent(limits, crs=ccrs.PlateCarree())
     #ax.set_extent([-100, -75., 20., 35], crs=ccrs.PlateCarree())
     ax.coastlines(resolution='10m', color='black', linewidth=0.5)
     plt.axis('off')
@@ -156,12 +156,14 @@ def make_pngs(file, plotfolder, fig, ax, projection, mapproj=None):
     date   = datetime.datetime(2000, 1, 1, 12) + datetime.timedelta(seconds=float(timeoff))
 
     year   = date.year
-    day    = date.timetuple().tm_yday
+    yday   = date.timetuple().tm_yday
+    month  = date.month
+    day    = date.day
     hour   = date.hour
     minute = date.minute
     sec    = date.second
 
-    print("Processing %02d:%02d:%.3f..."%(hour, minute, sec),end='')
+    print("Processing %02d:%02d:%.3f..."%(hour, minute, sec), end='')
     sys.stdout.flush()
 
     R    = data.variables['CMI_C02'][:]
@@ -243,7 +245,7 @@ def make_pngs(file, plotfolder, fig, ax, projection, mapproj=None):
         mapproj.set_array(None)
         ax.background_patch.set_facecolor('k')
   
-    fig.savefig(plotfolder+"%d%03d_%02d%02d%02d.png"%(year, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
+    fig.savefig(plotfolder+"%d%02d%02d_%02d%02d%02d.png"%(year, month, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
     # plt.close(fig)
     print("%.2f"%(time.time() - t1))
 
