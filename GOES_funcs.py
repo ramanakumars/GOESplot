@@ -116,7 +116,7 @@ def process_files(filelist, year, day, limits, GLM):
 
 
     projection = ccrs.Mercator(central_longitude=(limits[0] + limits[1])/2.)
-    fig = plt.figure(figsize=(15,12))
+    fig = plt.figure(figsize=(10,8))
     ax  = fig.add_subplot(111, projection=projection, facecolor='black')
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
     ax.set_extent(limits, crs=ccrs.PlateCarree())
@@ -249,11 +249,9 @@ def process_ABI(file, fig, ax, projection, mapproj=None):
     p = Proj(proj='geos', h=sat_h, lon_0=sat_lon, sweep=sat_sweep)
     XX, YY = np.meshgrid(X, Y)
     lons, lats = p(XX, YY, inverse=True)
-    lats[np.isnan(R)] = np.nan
-    lons[np.isnan(R)] = np.nan
 
     ## Create a color tuple for pcolormesh
-    rgb = RGB_IR[:,:-1,:] # Using one less column is very imporant, else your image will be scrambled! (This is the stange nature of pcolormesh)
+    rgb = RGB_IR[:]
     colorTuple = rgb.reshape((rgb.shape[0] * rgb.shape[1]), 3) # flatten array, becuase that's what pcolormesh wants.
     colorTuple = np.insert(colorTuple, 3, 1.0, axis=1) # adding an alpha channel will plot faster, according to stackoverflow. Not sure why.
 
