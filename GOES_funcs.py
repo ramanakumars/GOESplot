@@ -119,10 +119,6 @@ def process_files(filelist, year, day, limits, GLM):
     fig = plt.figure(figsize=(10,8))
     ax  = fig.add_subplot(111, projection=projection, facecolor='black')
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
-    ax.set_extent(limits, crs=ccrs.PlateCarree())
-    #ax.set_extent([-100, -75., 20., 35], crs=ccrs.PlateCarree())
-    ax.coastlines(resolution='10m', color='black', linewidth=0.5)
-    plt.axis('off')
     
     # Use the anonymous credentials to access public data
     fs = s3fs.S3FileSystem(anon=True)
@@ -130,10 +126,11 @@ def process_files(filelist, year, day, limits, GLM):
     for i, file in enumerate(filelist):
         t1 = time.time()
 
-        if(i==0):
-            mapproj, date = process_ABI(fs.open(file, 'r'), fig, ax, projection)
-        else:
-            mapproj, date = process_ABI(fs.open(file, 'r'), fig, ax, projection, mapproj=mapproj)
+        ax.cla()
+        ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
+        ax.coastlines(resolution='10m', color='black', linewidth=0.5)
+
+        date = process_ABI(fs.open(file, 'r'), fig, ax, projection)
 
 
         if(GLM):
@@ -174,10 +171,12 @@ def process_files(filelist, year, day, limits, GLM):
         hour   = date.hour
         minute = date.minute
         sec    = date.second
+        plt.axis('off')
+        ax.set_extent(limits, crs=ccrs.PlateCarree())
         fig.savefig(plotfolder+"%d%02d%02d_%02d%02d%02d.png"%(year, month, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
         print("%.2f"%(time.time() - t1))
 
-def process_ABI(file, fig, ax, projection, mapproj=None):
+def process_ABI(file, fig, ax, projection):
     ''' stream the netCDF file by reading it from memory '''
     data = nc.Dataset('name', 'r', memory=file.buffer.read())
 
@@ -245,25 +244,22 @@ def process_ABI(file, fig, ax, projection, mapproj=None):
     X = data.variables['x'][:] * sat_h
     Y = data.variables['y'][:] * sat_h
 
+    data.close()
+    R = []
+    G = []
+    B = []
+    cleanIR = []
+
     # Convert map points to latitude and longitude with the magic provided by Pyproj
-    p = Proj(proj='geos', h=sat_h, lon_0=sat_lon, sweep=sat_sweep)
-    XX, YY = np.meshgrid(X, Y)
-    lons, lats = p(XX, YY, inverse=True)
+    #p = Proj(proj='geos', h=sat_h, lon_0=sat_lon, sweep=sat_sweep)
+    #XX, YY = np.meshgrid(X, Y)
+    #lons, lats = p(XX, YY, inverse=True)
 
-    ## Create a color tuple for pcolormesh
-    rgb = RGB_IR[:]
-    colorTuple = rgb.reshape((rgb.shape[0] * rgb.shape[1]), 3) # flatten array, becuase that's what pcolormesh wants.
-    colorTuple = np.insert(colorTuple, 3, 1.0, axis=1) # adding an alpha channel will plot faster, according to stackoverflow. Not sure why.
+    geos = ccrs.Geostationary(central_longitude=sat_lon, satellite_height=sat_h, sweep_axis=sat_sweep)
 
-    try:
-        mapproj.update({'color': colorTuple})
-    except:
-        mapproj = ax.pcolormesh(lons, lats, R, color=colorTuple, antialiased=False, linewidth=0, transform=ccrs.PlateCarree())
-        mapproj.set_array(None)
-        ax.background_patch.set_facecolor('k')
-  
+    ax.imshow(RGB_IR, origin='upper', extent=(X.min(), X.max(), Y.min(), Y.max()), transform=geos, interpolation='none')
 
-    return mapproj, date
+    return date
 
 def get_GLM(start_date, end_date, fs):
     syear = start_date.year
