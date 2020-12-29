@@ -5,9 +5,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt, glob, time, re
 import s3fs, os, sys, datetime, dateutil, pytz
 import netCDF4 as nc
-from pyproj import Proj
 import cartopy.crs as ccrs
 from cartopy.feature import NaturalEarthFeature
+import xarray, metpy
 
 utc = pytz.UTC
 
@@ -96,7 +96,7 @@ def get_filelist(year, day, daytime_only):
 
         ''' if we only want the daytime images '''
         if(daytime_only==True):
-            if((houri>=1)&(houri<11)):
+            if((houri>=0)&(houri<11)):
                 continue
         for file in files:
             filelist.append(file)
@@ -127,8 +127,9 @@ def process_files(filelist, year, day, limits, GLM):
         t1 = time.time()
 
         ax.cla()
-        ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
-        ax.coastlines(resolution='10m', color='black', linewidth=0.5)
+        #ax.set_extent([-125, -65., 20., 55], crs=ccrs.PlateCarree())
+        ax.set_extent(limits, crs=ccrs.PlateCarree())
+        ax.coastlines(resolution='50m', color='black', linewidth=0.5)
 
         date = process_ABI(fs.open(file, 'r'), fig, ax, projection)
 
@@ -172,21 +173,23 @@ def process_files(filelist, year, day, limits, GLM):
         minute = date.minute
         sec    = date.second
         plt.axis('off')
-        ax.set_extent(limits, crs=ccrs.PlateCarree())
+        #ax.set_extent(limits, crs=ccrs.PlateCarree())
         fig.savefig(plotfolder+"%d%02d%02d_%02d%02d%02d.png"%(year, month, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
         print("%.2f"%(time.time() - t1))
 
 def process_ABI(file, fig, ax, projection):
     ''' stream the netCDF file by reading it from memory '''
-    data = nc.Dataset('name', 'r', memory=file.buffer.read())
+    ncdata = nc.Dataset('name', 'r', memory=file.buffer.read())
 
-    timeoff = data.variables['t'][0]
+    data   = xarray.open_dataset(xarray.backends.NetCDF4DataStore(ncdata))
+
+    timeoff = ncdata.variables['t'][0]
     date   = datetime.datetime(2000, 1, 1, 12) + datetime.timedelta(seconds=float(timeoff))
     print("Processing %02d:%02d:%02.3f..."%(date.hour, date.minute, date.second), end='')
 
-    R    = data.variables['CMI_C02'][:]
-    G    = data.variables['CMI_C03'][:]
-    B    = data.variables['CMI_C01'][:]
+    R    = data['CMI_C02'].data
+    G    = data['CMI_C03'].data
+    B    = data['CMI_C01'].data
 
     # Apply range limits for each channel becuase RGB values must be between 0 and 1
     R = np.clip(R, 0, 1)
@@ -208,7 +211,7 @@ def process_ABI(file, fig, ax, projection):
     color_corr = contrast_correction(color, 125)
 
     ## load the clean IR for nighttime
-    cleanIR = data.variables['CMI_C13'][:]
+    cleanIR = data['CMI_C13'].data
     cleanIR[cleanIR==-1] = np.nan
 
     # Apply range limits for clean IR channel
@@ -230,34 +233,19 @@ def process_ABI(file, fig, ax, projection):
 
     RGB_IR = np.dstack([np.maximum(R, cleanIR), np.maximum(G, cleanIR), np.maximum(B, cleanIR)])
 
-    # Satellite height
-    sat_h = data.variables['goes_imager_projection'].perspective_point_height
+    cf_data = data.metpy.parse_cf('CMI_C02')
 
-    # Satellite longitude
-    sat_lon = data.variables['goes_imager_projection'].longitude_of_projection_origin
-
-    # Satellite sweep
-    sat_sweep = data.variables['goes_imager_projection'].sweep_angle_axis
-
-    # The projection x and y coordinates equals
-    # the scanning angle (in radians) multiplied by the satellite height (http://proj4.org/projections/geos.html)
-    X = data.variables['x'][:] * sat_h
-    Y = data.variables['y'][:] * sat_h
+    geos = cf_data.metpy.cartopy_crs
+    x = cf_data.x
+    y = cf_data.y
 
     data.close()
     R = []
     G = []
     B = []
     cleanIR = []
-
-    # Convert map points to latitude and longitude with the magic provided by Pyproj
-    #p = Proj(proj='geos', h=sat_h, lon_0=sat_lon, sweep=sat_sweep)
-    #XX, YY = np.meshgrid(X, Y)
-    #lons, lats = p(XX, YY, inverse=True)
-
-    geos = ccrs.Geostationary(central_longitude=sat_lon, satellite_height=sat_h, sweep_axis=sat_sweep)
-
-    ax.imshow(RGB_IR, origin='upper', extent=(X.min(), X.max(), Y.min(), Y.max()), transform=geos, interpolation='none')
+    
+    ax.imshow(RGB_IR, origin='upper', extent=(x.min(), x.max(), y.min(), y.max()), transform=geos, interpolation='hermite')
 
     return date
 

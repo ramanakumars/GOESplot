@@ -28,7 +28,7 @@ day_of_year = date.timetuple().tm_yday
 # if(args.download == True):
 #     get_data(year, day_of_year, int(args.daytime))
 
-filelist = get_filelist(year, day_of_year, int(args.daytime))
+filelist = get_filelist(year, day_of_year, bool(args.daytime))
 
 if(args.process_last):
     process_files([filelist[-1]], year, day_of_year, args.limits, args.GLM)
