@@ -7,6 +7,7 @@ parser.add_argument('--daytime', action="store_true", help='Use daytime data (10
 parser.add_argument('--process_last', action='store_true', help='Only process the latest file')
 parser.add_argument('--GLM', action='store_true', help='Add flashes from GLM')
 parser.add_argument('--limits', action='store', type=float, default=[-125., -65., 20., 55.], nargs=4, help='lon/lat limits for plotting')
+parser.add_argument('--borders', action='store_true', help='Add US state and country borders')
 
 args = parser.parse_args()
 
@@ -31,7 +32,7 @@ day_of_year = date.timetuple().tm_yday
 filelist = get_filelist(year, day_of_year, bool(args.daytime))
 
 if(args.process_last):
-    process_files([filelist[-1]], year, day_of_year, args.limits, args.GLM)
+    process_files([filelist[-1]], year, day_of_year, args.limits, args.GLM, args.borders)
 else:
-    process_files(filelist, year, day_of_year, args.limits, args.GLM)
+    process_files(filelist, year, day_of_year, args.limits, args.GLM, args.borders)
 

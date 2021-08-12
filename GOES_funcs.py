@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt, glob, time, re
 import s3fs, os, sys, datetime, dateutil, pytz
 import netCDF4 as nc
 import cartopy.crs as ccrs
-from cartopy.feature import NaturalEarthFeature
+from cartopy.feature import NaturalEarthFeature, BORDERS, STATES
 import xarray, metpy
 
 utc = pytz.UTC
@@ -103,7 +103,7 @@ def get_filelist(year, day, daytime_only):
         
     return filelist
   
-def process_files(filelist, year, day, limits, GLM):
+def process_files(filelist, year, day, limits, GLM, borders=False):
     ''' 
         create the figure
         and apply the projection we want (Mercator centered over the central US)
@@ -131,7 +131,7 @@ def process_files(filelist, year, day, limits, GLM):
         ax.set_extent(limits, crs=ccrs.PlateCarree())
         ax.coastlines(resolution='50m', color='black', linewidth=0.5)
 
-        date = process_ABI(fs.open(file, 'r'), fig, ax, projection)
+        date = process_ABI(fs.open(file, 'r'), fig, ax, projection, borders)
 
 
         if(GLM):
@@ -177,7 +177,7 @@ def process_files(filelist, year, day, limits, GLM):
         fig.savefig(plotfolder+"%d%02d%02d_%02d%02d%02d.png"%(year, month, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
         print("%.2f"%(time.time() - t1))
 
-def process_ABI(file, fig, ax, projection):
+def process_ABI(file, fig, ax, projection, borders):
     ''' stream the netCDF file by reading it from memory '''
     ncdata = nc.Dataset('name', 'r', memory=file.buffer.read())
 
@@ -246,6 +246,10 @@ def process_ABI(file, fig, ax, projection):
     cleanIR = []
     
     ax.imshow(RGB_IR, origin='upper', extent=(x.min(), x.max(), y.min(), y.max()), transform=geos, interpolation='hermite')
+
+    if borders:
+        ax.add_feature(STATES, linewidth=0.3)
+        ax.add_feature(BORDERS, linewidth=0.5)
 
     return date
 
