@@ -215,7 +215,7 @@ def process_ABI(file, fig, ax, projection, borders):
     #color_corr = contrast_correction(color, 125)
 
     for ci in range(3):
-        color_corr[:,:,ci] = exposure.equalize_adapthist(color_corr[:,:,ci], clip_limit=0.02)
+        color_corr[:,:,ci] = exposure.equalize_adapthist(color_corr[:,:,ci], clip_limit=0.01)
 
     ## load the clean IR for nighttime
     cleanIR = data['CMI_C13'].data
