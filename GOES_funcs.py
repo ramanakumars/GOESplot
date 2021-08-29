@@ -8,6 +8,8 @@ import netCDF4 as nc
 import cartopy.crs as ccrs
 from cartopy.feature import NaturalEarthFeature, BORDERS, STATES
 import xarray, metpy
+from skimage.color import rgb2hsv, hsv2rgb
+from skimage import exposure
 
 utc = pytz.UTC
 
@@ -205,11 +207,15 @@ def process_ABI(file, fig, ax, projection, borders):
 
     # Calculate the "True" Green
     G_true = 0.48358168 * R + 0.45706946 * B + 0.06038137 * G
-    G_true = np.maximum(G_true, 0)
-    G_true = np.minimum(G_true, 1)
+    G_true = np.clip(G_true, 0, 1)
+    #G_true = np.maximum(G_true, 0)
+    #G_true = np.minimum(G_true, 1)
 
-    color  = np.dstack([R, G_true, B])
-    color_corr = contrast_correction(color, 125)
+    color_corr  = np.dstack([R, G_true, B])
+    #color_corr = contrast_correction(color, 125)
+
+    for ci in range(3):
+        color_corr[:,:,ci] = exposure.equalize_adapthist(color_corr[:,:,ci], clip_limit=0.02)
 
     ## load the clean IR for nighttime
     cleanIR = data['CMI_C13'].data

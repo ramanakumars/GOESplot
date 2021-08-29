@@ -7,3 +7,4 @@ pyproj
 cartopy
 metpy
 xarray
+scikit-image
