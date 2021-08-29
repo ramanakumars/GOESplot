@@ -116,7 +116,7 @@ def process_files(filelist, year, day, limits, GLM, borders=False):
 
 
     projection = ccrs.Mercator(central_longitude=(limits[0] + limits[1])/2.)
-    fig = plt.figure(figsize=(10,8))
+    fig = plt.figure(figsize=(20,16), dpi=300)
     ax  = fig.add_subplot(111, projection=projection, facecolor='black')
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
     
@@ -174,7 +174,8 @@ def process_files(filelist, year, day, limits, GLM, borders=False):
         sec    = date.second
         plt.axis('off')
         #ax.set_extent(limits, crs=ccrs.PlateCarree())
-        fig.savefig(plotfolder+"%d%02d%02d_%02d%02d%02d.png"%(year, month, day, hour, minute, sec), bbox_inches='tight', facecolor='black', dpi=150)
+        fig.savefig(plotfolder+"%d%02d%02d_%02d%02d%02d.png"%(year, month, day, hour, minute, sec), bbox_inches='tight', \
+                    facecolor='black', dpi=300)
         print("%.2f"%(time.time() - t1))
 
 def process_ABI(file, fig, ax, projection, borders):
@@ -314,6 +315,6 @@ def plot_GLM(GLM_list, fs, fig, ax, start_date, end_date):
         event_lat    = data.variables['event_lat'][:][mask]
         event_lon    = data.variables['event_lon'][:][mask]
 
-        ax.scatter(event_lon, event_lat, s=0.5, c=event_energy, vmin=-15, vmax=-10, cmap='Reds_r', transform=ccrs.PlateCarree())
+        ax.scatter(event_lon, event_lat, s=2, c=event_energy, vmin=-15, vmax=-10, cmap='Reds_r', transform=ccrs.PlateCarree())
 
         
