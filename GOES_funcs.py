@@ -105,7 +105,7 @@ def get_filelist(year, day, daytime_only):
         
     return filelist
   
-def process_files(filelist, year, day, limits, GLM, borders=False):
+def process_files(filelist, year, day, limits, GLM, borders=False, enhance=False):
     ''' 
         create the figure
         and apply the projection we want (Mercator centered over the central US)
@@ -118,7 +118,7 @@ def process_files(filelist, year, day, limits, GLM, borders=False):
 
 
     projection = ccrs.Mercator(central_longitude=(limits[0] + limits[1])/2.)
-    fig = plt.figure(figsize=(20,16), dpi=300)
+    fig = plt.figure(figsize=(12,10), dpi=300)
     ax  = fig.add_subplot(111, projection=projection, facecolor='black')
     plt.subplots_adjust(top=1., bottom=0., left=0., right=1.)
     
@@ -133,7 +133,7 @@ def process_files(filelist, year, day, limits, GLM, borders=False):
         ax.set_extent(limits, crs=ccrs.PlateCarree())
         ax.coastlines(resolution='50m', color='black', linewidth=0.5)
 
-        date = process_ABI(fs.open(file, 'r'), fig, ax, projection, borders)
+        date = process_ABI(fs.open(file, 'r'), fig, ax, projection, borders, enhance)
 
 
         if(GLM):
@@ -180,7 +180,7 @@ def process_files(filelist, year, day, limits, GLM, borders=False):
                     facecolor='black', dpi=300)
         print("%.2f"%(time.time() - t1))
 
-def process_ABI(file, fig, ax, projection, borders):
+def process_ABI(file, fig, ax, projection, borders, enhance):
     ''' stream the netCDF file by reading it from memory '''
     ncdata = nc.Dataset('name', 'r', memory=file.buffer.read())
 
@@ -212,10 +212,12 @@ def process_ABI(file, fig, ax, projection, borders):
     #G_true = np.minimum(G_true, 1)
 
     color_corr  = np.dstack([R, G_true, B])
-    #color_corr = contrast_correction(color, 125)
 
-    for ci in range(3):
-        color_corr[:,:,ci] = exposure.equalize_adapthist(color_corr[:,:,ci], clip_limit=0.01)
+    if enhance:
+        for ci in range(3):
+            color_corr[:,:,ci] = exposure.equalize_adapthist(color_corr[:,:,ci], clip_limit=0.015)
+    else:
+        color_corr = contrast_correction(color_corr, 200)
 
     ## load the clean IR for nighttime
     cleanIR = data['CMI_C13'].data

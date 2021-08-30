@@ -8,6 +8,7 @@ parser.add_argument('--process_last', action='store_true', help='Only process th
 parser.add_argument('--GLM', action='store_true', help='Add flashes from GLM')
 parser.add_argument('--limits', action='store', type=float, default=[-125., -65., 20., 55.], nargs=4, help='lon/lat limits for plotting')
 parser.add_argument('--borders', action='store_true', help='Add US state and country borders')
+parser.add_argument('--enhance', action='store_true', help='Create an enhanced color image')
 
 args = parser.parse_args()
 
@@ -32,7 +33,7 @@ day_of_year = date.timetuple().tm_yday
 filelist = get_filelist(year, day_of_year, bool(args.daytime))
 
 if(args.process_last):
-    process_files([filelist[-1]], year, day_of_year, args.limits, args.GLM, args.borders)
+    process_files([filelist[-1]], year, day_of_year, args.limits, args.GLM, args.borders, args.enhance)
 else:
-    process_files(filelist, year, day_of_year, args.limits, args.GLM, args.borders)
+    process_files(filelist, year, day_of_year, args.limits, args.GLM, args.borders, args.enhance)
 
